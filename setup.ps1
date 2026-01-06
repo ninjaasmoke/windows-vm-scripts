@@ -17,9 +17,9 @@ function Download-File($url, $outFile) {
   Invoke-WebRequest -Uri $url -OutFile $outFile -UseBasicParsing
 }
 
-function Run-Installer($path, $args) {
-  Write-Host "Installing: $path $args"
-  $p = Start-Process -FilePath $path -ArgumentList $args -Wait -PassThru
+function Run-Installer($path, $arguments) {
+  Write-Host "Installing: $path $arguments"
+  $p = Start-Process -FilePath $path -ArgumentList $arguments -Wait -PassThru
   if ($p.ExitCode -ne 0) { throw "Installer failed: $path (ExitCode=$($p.ExitCode))" }
 }
 

@@ -1,4 +1,3 @@
-
 #requires -RunAsAdministrator
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -51,11 +50,7 @@ $apps = @(
     Name  = "Everything (with service)"
     Url   = "https://www.voidtools.com/Everything-1.4.1.1030.x64-Setup.exe"
     File  = "Everything-1.4.1.1030.x64-Setup.exe"
-    # /S supported by installer. -install-options supported to enable service & configure install. [4](https://www.voidtools.com/forum/viewtopic.php?t=5673)
-    Args  = @(
-      "/S",
-      "-install-options `"-app-data -install-service -install-start-menu-shortcuts -install-efu-association -install-run-on-system-startup -install-language 1033`""
-    ) -join " "
+    Args  = '/S -install-options "-app-data -install-service -install-start-menu-shortcuts -install-efu-association -install-run-on-system-startup -install-language 1033"'
     Check = @("$env:ProgramFiles\Everything\Everything.exe")
   }
 )

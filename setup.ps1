@@ -86,4 +86,3 @@ finally {
     Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
-``

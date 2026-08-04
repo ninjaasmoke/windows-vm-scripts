@@ -105,25 +105,29 @@ try {
 
   $nvimConfig = Join-Path $env:LOCALAPPDATA "nvim"
   Write-Host "`n=== LazyVim ==="
+  $starterZip = Join-Path $workDir "lazyvim-starter.zip"
+  $starterDir = Join-Path $workDir "starter"
+  Download-File "https://github.com/LazyVim/starter/archive/refs/heads/main.zip" $starterZip
+  Expand-Archive -LiteralPath $starterZip -DestinationPath $starterDir -Force
+
+  $starterRoot = Join-Path $starterDir "starter-main"
+  if (-not (Test-Path -LiteralPath $starterRoot)) {
+    throw "LazyVim starter archive did not contain the expected directory."
+  }
+
   if (Test-Path -LiteralPath $nvimConfig) {
-    Write-Host "$nvimConfig already exists. Leaving it unchanged."
-  } else {
-    $starterZip = Join-Path $workDir "lazyvim-starter.zip"
-    $starterDir = Join-Path $workDir "starter"
-    Download-File "https://github.com/LazyVim/starter/archive/refs/heads/main.zip" $starterZip
-    Expand-Archive -LiteralPath $starterZip -DestinationPath $starterDir -Force
+    $backup = "$nvimConfig.backup-$(Get-Date -Format 'yyyyMMdd-HHmmssfff')"
+    Copy-Item -LiteralPath $nvimConfig -Destination $backup -Recurse
+    Remove-Item -LiteralPath $nvimConfig -Recurse -Force
+    Write-Host "Backed up the existing configuration to $backup."
+  }
 
-    $starterRoot = Join-Path $starterDir "starter-main"
-    if (-not (Test-Path -LiteralPath $starterRoot)) {
-      throw "LazyVim starter archive did not contain the expected directory."
-    }
+  Copy-Item -LiteralPath $starterRoot -Destination $nvimConfig -Recurse
+  Remove-Item -LiteralPath (Join-Path $nvimConfig ".git") -Recurse -Force -ErrorAction SilentlyContinue
 
-    Copy-Item -LiteralPath $starterRoot -Destination $nvimConfig -Recurse
-    Remove-Item -LiteralPath (Join-Path $nvimConfig ".git") -Recurse -Force -ErrorAction SilentlyContinue
-
-    $pluginsDir = Join-Path $nvimConfig "lua\plugins"
-    New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null
-    @'
+  $pluginsDir = Join-Path $nvimConfig "lua\plugins"
+  New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null
+  @'
 return {
   { import = "lazyvim.plugins.extras.editor.neo-tree" },
   { import = "lazyvim.plugins.extras.editor.telescope" },
@@ -149,8 +153,7 @@ return {
 }
 '@ | Set-Content -LiteralPath (Join-Path $pluginsDir "git.lua") -Encoding UTF8
 
-    Write-Host "Installed LazyVim starter in $nvimConfig."
-  }
+  Write-Host "Installed LazyVim starter in $nvimConfig."
 
   Write-Host "`nDone."
 }

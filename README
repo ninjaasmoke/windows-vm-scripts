@@ -7,9 +7,9 @@ machines. Run PowerShell as Administrator, then execute:
     iex (iwr https://raw.githubusercontent.com/ninjaasmoke/windows-scripts/refs/heads/main/setup.ps1 -UseBasicParsing).Content
 
 The script installs Notepad++, gVim, Everything, Neovim, fd, ripgrep, and
-JetBrainsMono Nerd Font. It also installs the official LazyVim starter when
-%LOCALAPPDATA%\nvim does not already exist. Existing Neovim configuration is
-never changed.
+JetBrainsMono Nerd Font. It installs the official LazyVim starter in
+%LOCALAPPDATA%\nvim. If that directory exists, the script first copies it to
+a timestamped %LOCALAPPDATA%\nvim.backup-* directory.
 
 
 Using Neovim
@@ -18,6 +18,10 @@ Using Neovim
 Open a project from its working directory:
 
     nvim .
+
+Neovim is installed for all users and its installer adds
+%ProgramFiles%\Neovim\bin to the system PATH. Open a new terminal after setup
+if the current terminal cannot find nvim.
 
 LazyVim provides a file tree and filename search. The additional Git views
 use these keys:
@@ -33,6 +37,4 @@ GVFS repositories
 
 The setup does not modify or reinstall VFS for Git/GVFS and does not run
 automatic Git operations. LazyVim, Neogit, and Diffview only inspect a
-repository when invoked. In very large GVFS repositories, open Neovim in the
-smallest useful subdirectory and avoid broad file-tree or filename searches
-from the repository root.
+repository when invoked.

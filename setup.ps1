@@ -31,6 +31,20 @@ function Exists-Any($patterns) {
   return $false
 }
 
+function Install-WingetPackage($name, $id) {
+  Write-Host "`n=== $name ==="
+  & winget list --id $id --exact --accept-source-agreements 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host "Already installed. Skipping."
+    return
+  }
+
+  & winget install --id $id --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+  if ($LASTEXITCODE -ne 0) {
+    throw "winget failed to install $name (ExitCode=$LASTEXITCODE)"
+  }
+}
+
 $apps = @(
   @{
     Name  = "Notepad++"
@@ -73,6 +87,73 @@ try {
       Write-Host "Installed OK."
     }
   }
+
+  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    throw "winget is required. Install or update App Installer, then run this script again."
+  }
+
+  $wingetApps = @(
+    @{ Name = "Neovim";               Id = "Neovim.Neovim" },
+    @{ Name = "fd";                   Id = "sharkdp.fd" },
+    @{ Name = "ripgrep";              Id = "BurntSushi.ripgrep.MSVC" },
+    @{ Name = "JetBrainsMono Nerd Font"; Id = "DEVCOM.JetBrainsMonoNerdFont" }
+  )
+
+  foreach ($app in $wingetApps) {
+    Install-WingetPackage $app.Name $app.Id
+  }
+
+  $nvimConfig = Join-Path $env:LOCALAPPDATA "nvim"
+  Write-Host "`n=== LazyVim ==="
+  $starterZip = Join-Path $workDir "lazyvim-starter.zip"
+  $starterDir = Join-Path $workDir "starter"
+  Download-File "https://github.com/LazyVim/starter/archive/refs/heads/main.zip" $starterZip
+  Expand-Archive -LiteralPath $starterZip -DestinationPath $starterDir -Force
+
+  $starterRoot = Join-Path $starterDir "starter-main"
+  if (-not (Test-Path -LiteralPath $starterRoot)) {
+    throw "LazyVim starter archive did not contain the expected directory."
+  }
+
+  if (Test-Path -LiteralPath $nvimConfig) {
+    $backup = "$nvimConfig.backup-$(Get-Date -Format 'yyyyMMdd-HHmmssfff')"
+    Copy-Item -LiteralPath $nvimConfig -Destination $backup -Recurse
+    Remove-Item -LiteralPath $nvimConfig -Recurse -Force
+    Write-Host "Backed up the existing configuration to $backup."
+  }
+
+  Copy-Item -LiteralPath $starterRoot -Destination $nvimConfig -Recurse
+  Remove-Item -LiteralPath (Join-Path $nvimConfig ".git") -Recurse -Force -ErrorAction SilentlyContinue
+
+  $pluginsDir = Join-Path $nvimConfig "lua\plugins"
+  New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null
+  @'
+return {
+  { import = "lazyvim.plugins.extras.editor.neo-tree" },
+  { import = "lazyvim.plugins.extras.editor.telescope" },
+  {
+    "NeogitOrg/neogit",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "sindrets/diffview.nvim",
+    },
+    opts = {
+      kind = "tab",
+    },
+    keys = {
+      { "<leader>gg", "<cmd>Neogit<cr>", desc = "Git status (Neogit)" },
+    },
+  },
+  {
+    "sindrets/diffview.nvim",
+    keys = {
+      { "<leader>gd", "<cmd>DiffviewOpen<cr>", desc = "Git diff (Diffview)" },
+    },
+  },
+}
+'@ | Set-Content -LiteralPath (Join-Path $pluginsDir "git.lua") -Encoding UTF8
+
+  Write-Host "Installed LazyVim starter in $nvimConfig."
 
   Write-Host "`nDone."
 }

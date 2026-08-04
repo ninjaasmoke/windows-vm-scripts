@@ -2,6 +2,85 @@
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+function Select-InstallItems {
+  Add-Type -AssemblyName System.Windows.Forms
+  Add-Type -AssemblyName System.Drawing
+
+  $choices = @(
+    @{ Id = "everything"; Name = "Everything (with service)" },
+    @{ Id = "neovim"; Name = "Neovim" },
+    @{ Id = "fd"; Name = "fd" },
+    @{ Id = "ripgrep"; Name = "ripgrep" },
+    @{ Id = "font"; Name = "JetBrainsMono Nerd Font" },
+    @{ Id = "lazyvim"; Name = "LazyVim configuration" }
+  )
+
+  $form = New-Object System.Windows.Forms.Form
+  $form.Text = "Windows development tools setup"
+  $form.StartPosition = "CenterScreen"
+  $form.ClientSize = New-Object System.Drawing.Size(430, 310)
+  $form.FormBorderStyle = "FixedDialog"
+  $form.MaximizeBox = $false
+  $form.MinimizeBox = $false
+  $form.TopMost = $true
+
+  $label = New-Object System.Windows.Forms.Label
+  $label.Text = "Select the items to install:"
+  $label.AutoSize = $true
+  $label.Location = New-Object System.Drawing.Point(15, 15)
+  $form.Controls.Add($label)
+
+  $list = New-Object System.Windows.Forms.CheckedListBox
+  $list.CheckOnClick = $true
+  $list.Location = New-Object System.Drawing.Point(15, 42)
+  $list.Size = New-Object System.Drawing.Size(400, 210)
+  for ($i = 0; $i -lt $choices.Count; $i++) {
+    [void]$list.Items.Add($choices[$i].Name, $true)
+  }
+  $form.Controls.Add($list)
+
+  $installButton = New-Object System.Windows.Forms.Button
+  $installButton.Text = "Install"
+  $installButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+  $installButton.Location = New-Object System.Drawing.Point(255, 267)
+  $form.AcceptButton = $installButton
+  $form.Controls.Add($installButton)
+
+  $cancelButton = New-Object System.Windows.Forms.Button
+  $cancelButton.Text = "Cancel"
+  $cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+  $cancelButton.Location = New-Object System.Drawing.Point(340, 267)
+  $form.CancelButton = $cancelButton
+  $form.Controls.Add($cancelButton)
+
+  $dialogResult = $form.ShowDialog()
+  if ($dialogResult -ne [System.Windows.Forms.DialogResult]::OK) {
+    $form.Dispose()
+    return [pscustomobject]@{ Cancelled = $true; Selected = @() }
+  }
+
+  $selected = @()
+  for ($i = 0; $i -lt $choices.Count; $i++) {
+    if ($list.GetItemChecked($i)) {
+      $selected += $choices[$i].Id
+    }
+  }
+  $form.Dispose()
+  return [pscustomobject]@{ Cancelled = $false; Selected = $selected }
+}
+
+$selection = Select-InstallItems
+if ($selection.Cancelled) {
+  Write-Host "Setup cancelled."
+  exit 0
+}
+
+$selectedIds = @($selection.Selected)
+if ($selectedIds.Count -eq 0) {
+  Write-Host "No items selected. Nothing to install."
+  exit 0
+}
+
 try {
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
 } catch {
@@ -47,6 +126,7 @@ function Install-WingetPackage($name, $id) {
 
 $apps = @(
   @{
+    Id    = "everything"
     Name  = "Everything (with service)"
     Url   = "https://www.voidtools.com/Everything-1.4.1.1030.x64-Setup.exe"
     File  = "Everything-1.4.1.1030.x64-Setup.exe"
@@ -57,6 +137,10 @@ $apps = @(
 
 try {
   foreach ($app in $apps) {
+    if ($selectedIds -notcontains $app.Id) {
+      continue
+    }
+
     Write-Host "`n=== $($app.Name) ==="
     if (Exists-Any $app.Check) {
       Write-Host "Already installed. Skipping."
@@ -74,46 +158,50 @@ try {
     }
   }
 
-  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    throw "winget is required. Install or update App Installer, then run this script again."
-  }
-
   $wingetApps = @(
-    @{ Name = "Neovim";               Id = "Neovim.Neovim" },
-    @{ Name = "fd";                   Id = "sharkdp.fd" },
-    @{ Name = "ripgrep";              Id = "BurntSushi.ripgrep.MSVC" },
-    @{ Name = "JetBrainsMono Nerd Font"; Id = "DEVCOM.JetBrainsMonoNerdFont" }
+    @{ SelectionId = "neovim"; Name = "Neovim";                 Id = "Neovim.Neovim" },
+    @{ SelectionId = "fd";     Name = "fd";                     Id = "sharkdp.fd" },
+    @{ SelectionId = "ripgrep"; Name = "ripgrep";               Id = "BurntSushi.ripgrep.MSVC" },
+    @{ SelectionId = "font";   Name = "JetBrainsMono Nerd Font"; Id = "DEVCOM.JetBrainsMonoNerdFont" }
   )
 
-  foreach ($app in $wingetApps) {
-    Install-WingetPackage $app.Name $app.Id
+  $selectedWingetApps = @($wingetApps | Where-Object { $selectedIds -contains $_.SelectionId })
+  if ($selectedWingetApps.Count -gt 0) {
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+      throw "winget is required. Install or update App Installer, then run this script again."
+    }
+
+    foreach ($app in $selectedWingetApps) {
+      Install-WingetPackage $app.Name $app.Id
+    }
   }
 
-  $nvimConfig = Join-Path $env:LOCALAPPDATA "nvim"
-  Write-Host "`n=== LazyVim ==="
-  $starterZip = Join-Path $workDir "lazyvim-starter.zip"
-  $starterDir = Join-Path $workDir "starter"
-  Download-File "https://github.com/LazyVim/starter/archive/refs/heads/main.zip" $starterZip
-  Expand-Archive -LiteralPath $starterZip -DestinationPath $starterDir -Force
+  if ($selectedIds -contains "lazyvim") {
+    $nvimConfig = Join-Path $env:LOCALAPPDATA "nvim"
+    Write-Host "`n=== LazyVim ==="
+    $starterZip = Join-Path $workDir "lazyvim-starter.zip"
+    $starterDir = Join-Path $workDir "starter"
+    Download-File "https://github.com/LazyVim/starter/archive/refs/heads/main.zip" $starterZip
+    Expand-Archive -LiteralPath $starterZip -DestinationPath $starterDir -Force
 
-  $starterRoot = Join-Path $starterDir "starter-main"
-  if (-not (Test-Path -LiteralPath $starterRoot)) {
-    throw "LazyVim starter archive did not contain the expected directory."
-  }
+    $starterRoot = Join-Path $starterDir "starter-main"
+    if (-not (Test-Path -LiteralPath $starterRoot)) {
+      throw "LazyVim starter archive did not contain the expected directory."
+    }
 
-  if (Test-Path -LiteralPath $nvimConfig) {
-    $backup = "$nvimConfig.backup-$(Get-Date -Format 'yyyyMMdd-HHmmssfff')"
-    Copy-Item -LiteralPath $nvimConfig -Destination $backup -Recurse
-    Remove-Item -LiteralPath $nvimConfig -Recurse -Force
-    Write-Host "Backed up the existing configuration to $backup."
-  }
+    if (Test-Path -LiteralPath $nvimConfig) {
+      $backup = "$nvimConfig.backup-$(Get-Date -Format 'yyyyMMdd-HHmmssfff')"
+      Copy-Item -LiteralPath $nvimConfig -Destination $backup -Recurse
+      Remove-Item -LiteralPath $nvimConfig -Recurse -Force
+      Write-Host "Backed up the existing configuration to $backup."
+    }
 
-  Copy-Item -LiteralPath $starterRoot -Destination $nvimConfig -Recurse
-  Remove-Item -LiteralPath (Join-Path $nvimConfig ".git") -Recurse -Force -ErrorAction SilentlyContinue
+    Copy-Item -LiteralPath $starterRoot -Destination $nvimConfig -Recurse
+    Remove-Item -LiteralPath (Join-Path $nvimConfig ".git") -Recurse -Force -ErrorAction SilentlyContinue
 
-  $pluginsDir = Join-Path $nvimConfig "lua\plugins"
-  New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null
-  @'
+    $pluginsDir = Join-Path $nvimConfig "lua\plugins"
+    New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null
+    @'
 return {
   { import = "lazyvim.plugins.extras.editor.neo-tree" },
   { import = "lazyvim.plugins.extras.editor.telescope" },
@@ -139,7 +227,8 @@ return {
 }
 '@ | Set-Content -LiteralPath (Join-Path $pluginsDir "git.lua") -Encoding UTF8
 
-  Write-Host "Installed LazyVim starter in $nvimConfig."
+    Write-Host "Installed LazyVim starter in $nvimConfig."
+  }
 
   Write-Host "`nDone."
 }

@@ -6,7 +6,7 @@ machines. Run PowerShell as Administrator, then execute:
 
     iex (iwr https://raw.githubusercontent.com/ninjaasmoke/windows-scripts/refs/heads/main/setup.ps1 -UseBasicParsing).Content
 
-The script installs gVim, Everything, Neovim, fd, ripgrep, and
+The script installs Everything, Neovim, fd, ripgrep, and
 JetBrainsMono Nerd Font. It installs the official LazyVim starter in
 %LOCALAPPDATA%\nvim. If that directory exists, the script first copies it to
 a timestamped %LOCALAPPDATA%\nvim.backup-* directory.

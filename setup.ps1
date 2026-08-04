@@ -47,13 +47,6 @@ function Install-WingetPackage($name, $id) {
 
 $apps = @(
   @{
-    Name  = "gVim"
-    Url   = "https://www.vim.org/downloads/gvim_9.1.1825_x64.exe"
-    File  = "gvim_9.1.1825_x64.exe"
-    Args  = "/S"
-    Check = @("$env:ProgramFiles\Vim\vim*\gvim.exe")
-  },
-  @{
     Name  = "Everything (with service)"
     Url   = "https://www.voidtools.com/Everything-1.4.1.1030.x64-Setup.exe"
     File  = "Everything-1.4.1.1030.x64-Setup.exe"

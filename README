@@ -11,10 +11,6 @@ JetBrainsMono Nerd Font. It installs the official LazyVim starter in
 %LOCALAPPDATA%\nvim. If that directory exists, the script first copies it to
 a timestamped %LOCALAPPDATA%\nvim.backup-* directory.
 
-Before installing anything, the script displays a checklist of these items.
-All items are selected by default; clear any item you do not want installed.
-
-
 Using Neovim
 ------------
 

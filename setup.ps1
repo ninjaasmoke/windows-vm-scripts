@@ -76,6 +76,10 @@ if ($selection.Cancelled) {
 }
 
 $selectedIds = @($selection.Selected)
+if (($selectedIds -contains "lazyvim") -and ($selectedIds -notcontains "neovim")) {
+  Write-Host "LazyVim requires Neovim; adding Neovim to the installation selection."
+  $selectedIds += "neovim"
+}
 if ($selectedIds.Count -eq 0) {
   Write-Host "No items selected. Nothing to install."
   exit 0

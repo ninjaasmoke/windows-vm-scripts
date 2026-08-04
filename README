@@ -1,0 +1,38 @@
+windows-scripts
+---------------
+
+This sets up the Windows editor and search tools used on development
+machines. Run PowerShell as Administrator, then execute:
+
+    iex (iwr https://raw.githubusercontent.com/ninjaasmoke/windows-scripts/refs/heads/main/setup.ps1 -UseBasicParsing).Content
+
+The script installs Notepad++, gVim, Everything, Neovim, fd, ripgrep, and
+JetBrainsMono Nerd Font. It also installs the official LazyVim starter when
+%LOCALAPPDATA%\nvim does not already exist. Existing Neovim configuration is
+never changed.
+
+
+Using Neovim
+------------
+
+Open a project from its working directory:
+
+    nvim .
+
+LazyVim provides a file tree and filename search. The additional Git views
+use these keys:
+
+    <leader>gg    open Neogit status, staging, and commit UI
+    <leader>gd    open Diffview
+
+In LazyVim, <leader> is the Space key.
+
+
+GVFS repositories
+-----------------
+
+The setup does not modify or reinstall VFS for Git/GVFS and does not run
+automatic Git operations. LazyVim, Neogit, and Diffview only inspect a
+repository when invoked. In very large GVFS repositories, open Neovim in the
+smallest useful subdirectory and avoid broad file-tree or filename searches
+from the repository root.

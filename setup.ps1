@@ -3,9 +3,6 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 function Select-InstallItems {
-  Add-Type -AssemblyName System.Windows.Forms
-  Add-Type -AssemblyName System.Drawing
-
   $choices = @(
     @{ Id = "everything"; Name = "Everything (with service)" },
     @{ Id = "neovim"; Name = "Neovim" },
@@ -14,6 +11,18 @@ function Select-InstallItems {
     @{ Id = "font"; Name = "JetBrainsMono Nerd Font" },
     @{ Id = "lazyvim"; Name = "LazyVim configuration" }
   )
+
+  if (-not [Environment]::UserInteractive) {
+    return [pscustomobject]@{ Cancelled = $false; Selected = @($choices.Id) }
+  }
+
+  try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+  } catch {
+    Write-Host "Interactive prompt unavailable; defaulting to installing all items."
+    return [pscustomobject]@{ Cancelled = $false; Selected = @($choices.Id) }
+  }
 
   $form = New-Object System.Windows.Forms.Form
   $form.Text = "Windows development tools setup"

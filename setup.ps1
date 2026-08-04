@@ -47,13 +47,6 @@ function Install-WingetPackage($name, $id) {
 
 $apps = @(
   @{
-    Name  = "Notepad++"
-    Url   = "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9/npp.8.9.Installer.x64.exe"
-    File  = "npp.8.9.Installer.x64.exe"
-    Args  = "/S"
-    Check = @("$env:ProgramFiles\Notepad++\notepad++.exe")
-  },
-  @{
     Name  = "gVim"
     Url   = "https://www.vim.org/downloads/gvim_9.1.1825_x64.exe"
     File  = "gvim_9.1.1825_x64.exe"

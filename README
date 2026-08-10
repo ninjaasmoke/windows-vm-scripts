@@ -2,7 +2,7 @@ windows-scripts
 ---------------
 
 This sets up the Windows editor and search tools used on development
-machines. Run PowerShell as Administrator, then execute:
+machines. Run PowerShell as Administrator, then:
 
     iex (iwr https://raw.githubusercontent.com/ninjaasmoke/windows-scripts/refs/heads/main/setup.ps1 -UseBasicParsing).Content
 
